@@ -1,0 +1,276 @@
+% jianpu.tex	author: YIN Dian
+% Hist: 070705	First mamahuhu simple version out. bug a lot. need a big
+% 		change in format.
+%	070723	Changed note input mechanism. The light of hope seen:)
+\catcode`\@=11
+\ifx\LaTeX\@undefined
+%\def\@nnil{\@nil}%
+%\def\@empty{}%
+%\def\@fornoop#1\@@#2#3{}%
+%\long\def\@for#1:=#2\do#3{%
+%  \expandafter\def\expandafter\@fortmp\expandafter{#2}%
+%  \ifx\@fortmp\@empty \else
+%    \expandafter\@forloop#2,\@nil,\@nil\@@#1{#3}\fi}%
+%\long\def\@forloop#1,#2,#3\@@#4#5{\def#4{#1}\ifx #4\@nnil \else
+%       #5\def#4{#2}\ifx #4\@nnil \else#5\@iforloop #3\@@#4{#5}\fi\fi}%
+%\long\def\@iforloop#1,#2\@@#3#4{\def#3{#1}\ifx #3\@nnil
+%       \expandafter\@fornoop \else
+%      #4\relax\expandafter\@iforloop\fi#2\@@#3{#4}}%
+%\def\@tfor#1:={\@tf@r#1 }%
+%\long\def\@tf@r#1#2\do#3{\def\@fortmp{#2}\ifx\@fortmp\space\else
+%    \@tforloop#2\@nil\@nil\@@#1{#3}\fi}%
+%\long\def\@tforloop#1#2\@@#3#4{\def#3{#1}\ifx #3\@nnil
+%       \expandafter\@fornoop \else
+%      #4\relax\expandafter\@tforloop\fi#2\@@#3{#4}}%
+\long\def\@ifnextchar#1#2#3{%
+  \let\reserved@d=#1%
+  \def\reserved@a{#2}%
+  \def\reserved@b{#3}%
+  \futurelet\@let@token\@ifnch}
+\def\@ifnch{%
+  \ifx\@let@token\@sptoken
+    \let\reserved@c\@xifnch
+  \else
+    \ifx\@let@token\reserved@d
+      \let\reserved@c\reserved@a
+    \else
+      \let\reserved@c\reserved@b
+    \fi
+  \fi
+  \reserved@c}
+\def\:{\let\@sptoken= } \:  % this makes \@sptoken a space token
+\def\:{\@xifnch} \expandafter\def\: {\futurelet\@let@token\@ifnch}
+\fi % end if
+% stack operations, for macros
+\def\JP@setstack#1#2{\edef#1{#2}}
+\def\JP@push#1#2{\edef#1{#2#1}}
+\def\JP@pop#1#2{\ifx#1\empty\def#2{}\else
+  \expandafter\JP@pop@getfirst#1\@nil#2\@nil
+  \expandafter\JP@pop@delfirst#1\@nil#1\@nil\fi}
+\def\JP@pop@getfirst#1#2\@nil#3\@nil{\def#3{#1}}
+\def\JP@pop@delfirst#1#2\@nil#3\@nil{\def#3{#2}}
+%\def\JP@popneg#1#2{\ifx#1\empty\def#2{}\else
+%  \expandafter\JP@pop@getfirst#1\@nil#2\@nil
+%  \expandafter\JP@pop@delfirst#1\@nil#1\@nil\fi}
+% queue operations, for boxes
+\def\JP@resetqueuebox#1{\setbox#1=\hbox{}}
+\def\JP@pushqueuebox#1#2{\setbox#1=\hbox{\copy#2\unhcopy#1}}
+\def\JP@popqueuebox#1#2{\setbox#1=\hbox{\unhcopy#1\global\setbox#2=\lastbox}}
+% dimension to number
+\def\JP@dimtonum#1#2{\edef#2{\JP@@dimtonum#1}}
+\def\JP@@dimtonum#1{\expandafter\JP@@@dimTonum\the#1}
+{\catcode`\p=12 \catcode`\t=12 \gdef\JP@@@dimTonum#1pt{#1}}
+\newdimen\JP@sp@tmpdim
+\def\JP@sptonum#1#2{\JP@sp@tmpdim=65536 #1\edef#2{\JP@@dimtonum\JP@sp@tmpdim}}
+\def\JP@sptocnt#1#2{\JP@sptonum{#1}\JP@sp@tmpdef\expandafter\expandafter
+  \expandafter#2\expandafter\JP@floattoint\JP@sp@tmpdef.\JP@end\relax}
+\def\JP@floattoint#1.#2\JP@end{#1}
+% special symbols
+\def\JP@dot{\hbox{\setbox0=\hbox{.}\dp0=0pt\ht0=0pt\box0}}
+% constants
+\newdimen\JP@sp@ne
+\JP@sp@ne=1sp
+% status variables
+\def\JP@curvestack{}
+\newcount\JP@defaultul
+\newcount\JP@ul
+\newdimen\JP@linewidth
+\newskip\JP@internoteskip
+\newskip\JP@interdecoskip
+%\newtoks\JP@nownote
+\def\JP@nownote{}
+\newcount\JP@nowpai
+\newcount\JP@nowpitch
+\JP@internoteskip=0pt plus 2em minus 0.1em
+\JP@interdecoskip=.6ex
+\JP@defaultul=0
+\JP@ul=0
+%\JP@nownote={}
+\JP@nowpai=0
+\JP@nowpitch=0
+% temp variables
+\newbox\JP@tmpbox
+\newbox\JP@tmpboy
+\newbox\JP@tmpboz
+\newcount\JP@tmpcnt
+\newcount\JP@tmpcns
+\newcount\JP@tmpcnr
+% user level macros
+\def\setcurvestack#1{\JP@setstack\JP@curvestack{#1}}
+\def\setdefaultul#1{\JP@defaultul=#1}
+\def\ul#1{\JP@ul=#1\JP@nowpai=#1}
+% special chars
+\def\JP@makespecials{%
+  \def\do##1{\catcode`##1=\active}%
+  \do|%
+  \def\do##1{\catcode`##1=11}%
+  \do\^\do\_
+}
+\def\JP@undospecials{%
+  \def\do##1{\catcode`##1=12}%
+  \do|%
+  \catcode`\^=7
+  \catcode`\_=8
+}
+\def\JP@domyevery#1{%
+  \everymath{#1}%
+  \everydisplay{#1}%
+  \everyhbox{#1}%
+  \everyvbox{#1}%
+}
+\def\JP@makenote#1{%
+  \setbox\JP@tmpbox=\hbox{#1}%
+  \futurelet\JP@nextchar\JP@makenote@iterate
+}
+\def\JP@makenote@iterate{%
+  \def\JP@makenote@iterate@next{\afterassignment\JP@makenote@iter@eat
+    \let\JP@nextchar}%
+  \message{\meaning\JP@nextchar}%
+  \ifx\JP@nextchar\JP@caret
+    \advance\JP@nowpitch by 1
+  \else\ifx\JP@nextchar\JP@underscore
+    \advance\JP@nowpitch by -1
+  \else
+    \let\JP@makenote@iterate@next=\JP@makenote@enditer
+  \fi\fi
+  \JP@makenote@iterate@next
+}
+\def\JP@makenote@iter@eat{%
+  \futurelet\JP@nextchar\JP@makenote@iterate
+}
+\def\JP@makenote@enditer{%
+    \JP@tmpcnt=\JP@nowpai
+    \loop
+    \ifnum\JP@tmpcnt > 0
+      \setbox\JP@tmpbox=\hbox{$\m@th\underline{\box\JP@tmpbox}$}%
+      \advance\JP@tmpcnt by -1
+    \repeat
+    \JP@tmpcnt=\JP@nowpitch
+    \ifnum\JP@tmpcnt > 0
+      \loop
+      \ifnum\JP@tmpcnt > 0
+        \setbox\JP@tmpbox=\hbox{\JP@above{\box\JP@tmpbox}{\JP@dot}}%
+        \advance\JP@tmpcnt by -1
+      \repeat
+    \else
+      \loop
+      \ifnum\JP@tmpcnt < 0
+	\setbox\JP@tmpbox=\hbox{\JP@under{\box\JP@tmpbox}{\JP@dot}}%
+        \advance\JP@tmpcnt by 1
+      \repeat
+    \fi
+    \JP@nowpitch=0
+    \box\JP@tmpbox
+}
+\def\JP@makenotecmd#1#2{%
+  \def#1{\JP@makenote{#2}}%
+}
+\JP@makenotecmd{\1}{1}
+\JP@makenotecmd{\2}{2}
+\JP@makenotecmd{\3}{3}
+\JP@makenotecmd{\4}{4}
+\JP@makenotecmd{\5}{5}
+\JP@makenotecmd{\6}{6}
+\JP@makenotecmd{\7}{7}
+\def\JP@@equ{\advance\JP@nowpai by 1}
+{
+  \JP@makespecials
+  \global\let\JP@caret=^
+  \global\let\JP@underscore=_
+  \gdef\JP@mapspecials{%
+    %\let^\JP@@car
+    %\let_\JP@@und
+    %\let\/\JP@flush
+    \let\=\JP@@equ
+  }
+}
+% above and under deco
+\def\JP@ensuremath#1{\ifmmode #1\else$\m@th #1$\fi}
+\def\JP@align#1{\baselineskip\z@skip\lineskip=\JP@interdecoskip\relax
+  \lineskiplimit=\JP@interdecoskip \ialign{##\crcr#1\crcr}}
+%\def\JP@above#1#2{\JP@ensuremath{\mathop{#1}\limits^{#2}}}
+%\def\JP@under#1#2{\JP@ensuremath{\mathop{#1}\limits_{#2}}}
+\def\JP@above#1#2{\leavevmode\vbox{\JP@align{\hidewidth #2\hidewidth\crcr #1}}}
+\def\JP@under#1#2{\leavevmode\vtop{\JP@align{#1\crcr\hidewidth #2\hidewidth}}}
+\def\JP@aboven#1#2#3{\leavevmode\vbox{\JP@tmpcnt=#3\def\JP@tmpdef{}\loop
+  \ifnum\JP@tmpcnt>0\expandafter\def\expandafter\JP@tmpdef\expandafter{\JP@tmpdef
+  \hidewidth #2\hidewidth\crcr}\advance\JP@tmpcnt by -1\repeat
+  \JP@align{\JP@tmpdef #1}}}
+\def\JP@undern#1#2#3{\leavevmode\vtop{\JP@tmpcnt=#3\def\JP@tmpdef{}\loop
+  \ifnum\JP@tmpcnt>0\expandafter\def\expandafter\JP@tmpdef\expandafter{\JP@tmpdef
+  \crcr\hidewidth #2\hidewidth}\advance\JP@tmpcnt by -1\repeat
+  \JP@align{#1\JP@tmpdef}}}
+% environments
+\def\melody{\begingroup\JP@makespecials\JP@mapspecials\JP@domyevery\JP@undospecials\@ifnextchar[{\JP@melodyparam}{\JP@melody}}
+\def\JP@melodyparam[#1]{\JP@undospecials\JP@linewidth=#1\JP@m@lody}
+\def\JP@melody{\JP@linewidth=\hsize\JP@m@lody}
+\def\JP@m@lody#1\\{\hbox to \JP@linewidth{#1}\endgroup}
+
+%\def\stk{}
+%\let\push=\JP@push
+%\let\pop=\JP@pop
+%\let\setstack=\JP@setstack
+%\setstack\stk{1234567890}
+%\stk\par
+%\push\stk3
+%\push\stk4
+%\stk
+%\par
+%\pop\stk\a
+%\a | \stk
+%\push\stk8
+%\push\stk9
+%\pop\stk\a
+%\a | \stk
+%\push\stk8
+%\par
+%\setstack\stk{1}
+%\pop\stk\a
+%\a | \stk
+%\pop\stk\a
+%\a | \stk
+%
+%\newdimen\tmpdim
+%\newcount\tmpcnt
+%\tmpdim=1234sp
+%%\printmode\printmode
+%\JP@sptocnt\tmpdim\tmpcnt
+%%\printmode
+%\the\tmpcnt\par
+
+%
+\def\printmode{%
+  \ifhmode
+    \ifinner\hbox{restricted horizontal mode}\else\hbox{horizontal mode}\fi
+  \else\ifvmode
+    \ifinner\hbox{internal vertical mode}\else\hbox{vertical mode}\fi
+  \else\ifmmode
+    \hbox{math mode}%
+  \fi\fi\fi
+}
+%
+\font\sf=cmss10 at 20pt
+\sf
+\newbox\tmpbox
+\newbox\queue
+\JP@resetqueuebox\queue
+\setbox\tmpbox\hbox{Hello}
+\JP@pushqueuebox\queue\tmpbox
+\setbox\tmpbox\hbox{world}
+\JP@pushqueuebox\queue\tmpbox
+\copy\queue
+\JP@popqueuebox\queue\tmpbox
+\box\tmpbox
+%\copy\queue
+\JP@popqueuebox\queue\tmpbox
+\box\tmpbox
+
+%\tracingall
+\melody  \1\2\3^^^^\4\=\5^^\=\6____\7\\
+%\par aaaaa
+%\JP@under{\JP@under{\JP@under{\JP@under{\hbox{3}}{\hbox{.}}}{\hbox{.}}}{\hbox{.}}}{\hbox{.}}
+%\hbox{
+%\JP@above{\JP@above{\JP@above{\JP@above{\hbox{3}}{\hbox{.}}}{\hbox{.}}}{\hbox{.}}}{\hbox{.}}
+%}
+%\par
+\bye
