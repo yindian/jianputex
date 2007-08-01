@@ -2,6 +2,8 @@
 % Hist: 070705	First mamahuhu simple version out. bug a lot. need a big
 % 		change in format.
 %	070723	Changed note input mechanism. The light of hope seen:)
+%	070731	hspace with underline added. internoteskip implemented.
+%		-, . suffix implemented. 
 \catcode`\@=11
 \ifx\LaTeX\@undefined
 %\def\@nnil{\@nil}%
@@ -72,33 +74,41 @@
 \JP@sp@ne=1sp
 % status variables
 \def\JP@curvestack{}
-\newcount\JP@defaultul
-\newcount\JP@ul
+\newcount\JP@defaultpai
 \newdimen\JP@linewidth
+\newdimen\JP@xiaojielength
+\newdimen\JP@notewidth
 \newskip\JP@internoteskip
+\newskip\JP@xiaojieskip
 \newskip\JP@interdecoskip
-%\newtoks\JP@nownote
-\def\JP@nownote{}
 \newcount\JP@nowpai
+\newcount\JP@lastpai
 \newcount\JP@nowpitch
 \JP@internoteskip=0pt plus 2em minus 0.1em
-\JP@interdecoskip=.6ex
-\JP@defaultul=0
-\JP@ul=0
+\JP@xiaojieskip=1ex plus 1ex minus 0.8ex
+\JP@interdecoskip=.8ex
+\JP@notewidth=1em
+\JP@xiaojielength=0pt
+\JP@defaultpai=0
 %\JP@nownote={}
 \JP@nowpai=0
+\JP@lastpai=-1
 \JP@nowpitch=0
 % temp variables
 \newbox\JP@tmpbox
 \newbox\JP@tmpboy
 \newbox\JP@tmpboz
+\newbox\JP@leaderbox
+\newbox\JP@xiaojiebox
 \newcount\JP@tmpcnt
 \newcount\JP@tmpcns
 \newcount\JP@tmpcnr
+\newdimen\JP@tmpdim
 % user level macros
 \def\setcurvestack#1{\JP@setstack\JP@curvestack{#1}}
-\def\setdefaultul#1{\JP@defaultul=#1}
-\def\ul#1{\JP@ul=#1\JP@nowpai=#1}
+\def\setdefaultpai#1{\JP@defaultpai=#1}
+\def\ul#1{\JP@lastpai=\JP@nowpai\JP@nowpai=#1}
+\def\setnotewidth#1{\JP@notewidth=#1}
 % special chars
 \def\JP@makespecials{%
   \def\do##1{\catcode`##1=\active}%
@@ -118,21 +128,27 @@
   \everyhbox{#1}%
   \everyvbox{#1}%
 }
+% makenote 
 \def\JP@makenote#1{%
   \setbox\JP@tmpbox=\hbox{#1}%
+  \setbox\JP@tmpboy=\hbox{}%
   \futurelet\JP@nextchar\JP@makenote@iterate
 }
 \def\JP@makenote@iterate{%
   \def\JP@makenote@iterate@next{\afterassignment\JP@makenote@iter@eat
     \let\JP@nextchar}%
-  \message{\meaning\JP@nextchar}%
+  %\message{\meaning\JP@nextchar}%
   \ifx\JP@nextchar\JP@caret
     \advance\JP@nowpitch by 1
   \else\ifx\JP@nextchar\JP@underscore
     \advance\JP@nowpitch by -1
+  \else\ifx\JP@nextchar\JP@dash
+    \setbox\JP@tmpboy=\hbox{\unhbox\JP@tmpboy --\hskip0.1ex}%
+  \else\ifx\JP@nextchar\JP@period
+    \setbox\JP@tmpboy=\hbox{\unhbox\JP@tmpboy \raise0.5ex\hbox{.}\hskip0.1ex}%
   \else
     \let\JP@makenote@iterate@next=\JP@makenote@enditer
-  \fi\fi
+  \fi\fi\fi\fi
   \JP@makenote@iterate@next
 }
 \def\JP@makenote@iter@eat{%
@@ -143,6 +159,7 @@
     \loop
     \ifnum\JP@tmpcnt > 0
       \setbox\JP@tmpbox=\hbox{$\m@th\underline{\box\JP@tmpbox}$}%
+      \setbox\JP@tmpboy=\hbox{$\m@th\underline{\box\JP@tmpboy}$}%
       \advance\JP@tmpcnt by -1
     \repeat
     \JP@tmpcnt=\JP@nowpitch
@@ -160,28 +177,102 @@
       \repeat
     \fi
     \JP@nowpitch=0
+    \ifnum\JP@lastpai<0
+      \hskip\JP@internoteskip
+    \else
+      \ifnum\JP@lastpai>\JP@nowpai
+        \unskip
+        \JP@getleader\hskip\JP@internoteskip
+      \fi
+    \fi
     \box\JP@tmpbox
+    \box\JP@tmpboy
+    \JP@getleader\hskip\JP@internoteskip
+    \JP@lastpai=\JP@nowpai
+    \ignorespaces
 }
 \def\JP@makenotecmd#1#2{%
   \def#1{\JP@makenote{#2}}%
 }
-\JP@makenotecmd{\1}{1}
-\JP@makenotecmd{\2}{2}
-\JP@makenotecmd{\3}{3}
-\JP@makenotecmd{\4}{4}
-\JP@makenotecmd{\5}{5}
-\JP@makenotecmd{\6}{6}
-\JP@makenotecmd{\7}{7}
-\def\JP@@equ{\advance\JP@nowpai by 1}
+% leader fill and hspace
+\def\JP@getleader{%
+  \setbox\JP@leaderbox=\hbox to 0.5pt{\hfil}%
+  \JP@tmpcnt=\JP@nowpai
+  \loop
+  \ifnum\JP@tmpcnt > 0
+    \setbox\JP@leaderbox=\hbox{$\m@th\underline{\box\JP@leaderbox}$}%
+    \advance\JP@tmpcnt by -1
+  \repeat
+  \xleaders\box\JP@leaderbox
+}
+\def\JP@hspace#1{%
+  \setbox\JP@leaderbox=\hbox to #1{\hfil}%
+  \JP@tmpcnt=\JP@nowpai
+  \loop
+  \ifnum\JP@tmpcnt > 0
+    \setbox\JP@leaderbox=\hbox{$\m@th\underline{\box\JP@leaderbox}$}%
+    \advance\JP@tmpcnt by -1
+  \repeat
+  \box\JP@leaderbox
+}
+% xiaojie
+\def\JP@startxiaojie{%
+  \setbox\JP@xiaojiebox=\hbox\bgroup\JP@makespecials
+  \JP@nowpai=\JP@defaultpai
+  %[%
+}
+\def\JP@endxiaojie{%
+  %]%
+  \egroup
+  \JP@tmpdim=\JP@xiaojielength
+  \@ifnextchar[{\JP@endxiaojie@param}{\JP@endxiaojie@}%
+}
+\def\JP@endxiaojie@param[#1]{%
+  \JP@tmpdim=#1\relax
+  \JP@endxiaojie@
+}
+\def\JP@endxiaojie@{%
+  \ifdim\JP@tmpdim=0pt
+    \box\JP@xiaojiebox
+  \else
+    \hbox to \JP@tmpdim{\unhbox\JP@xiaojiebox}%
+  \fi
+  \JP@startxiaojie
+}
+% macro mapping
+\def\JP@@equa{\advance\JP@nowpai by 1}
+\def\JP@@plus{\advance\JP@nowpai by -1}
+\def\JP@@vbar{\setbox\JP@tmpbox=\hbox{\JP@above{()}{\JP@dot}}%
+  \unskip
+  \hskip\JP@internoteskip
+  \hskip\JP@xiaojieskip
+  \vrule height\ht\JP@tmpbox depth\dp\JP@tmpbox
+  \hskip\JP@xiaojieskip
+  \JP@endxiaojie}
 {
   \JP@makespecials
   \global\let\JP@caret=^
   \global\let\JP@underscore=_
+  \global\let\JP@period=.
+  \global\let\JP@dash=-
   \gdef\JP@mapspecials{%
     %\let^\JP@@car
     %\let_\JP@@und
     %\let\/\JP@flush
-    \let\=\JP@@equ
+    \let\=\JP@@equa
+    \let\-\JP@@plus
+    \let|\JP@@vbar
+    \let\(\relax
+    \let\)\relax
+    \let\getleader\JP@getleader
+    \let\uhspace\JP@hspace
+    \JP@makenotecmd{\1}{\hbox to \JP@notewidth{\hss1\hss}}%
+    \JP@makenotecmd{\2}{\hbox to \JP@notewidth{\hss2\hss}}%
+    \JP@makenotecmd{\3}{\hbox to \JP@notewidth{\hss3\hss}}%
+    \JP@makenotecmd{\4}{\hbox to \JP@notewidth{\hss4\hss}}%
+    \JP@makenotecmd{\5}{\hbox to \JP@notewidth{\hss5\hss}}%
+    \JP@makenotecmd{\6}{\hbox to \JP@notewidth{\hss6\hss}}%
+    \JP@makenotecmd{\7}{\hbox to \JP@notewidth{\hss7\hss}}%
   }
 }
 % above and under deco
@@ -201,42 +292,12 @@
   \crcr\hidewidth #2\hidewidth}\advance\JP@tmpcnt by -1\repeat
   \JP@align{#1\JP@tmpdef}}}
 % environments
-\def\melody{\begingroup\JP@makespecials\JP@mapspecials\JP@domyevery\JP@undospecials\@ifnextchar[{\JP@melodyparam}{\JP@melody}}
-\def\JP@melodyparam[#1]{\JP@undospecials\JP@linewidth=#1\JP@m@lody}
+\def\melody{\begingroup\JP@makespecials\JP@mapspecials\JP@domyevery{%
+  \JP@undospecials}\@ifnextchar[{\JP@melodyparam}{\JP@melody}}
+\def\JP@melodyparam[#1]{\if!#1!\JP@linewidth=\hsize\else\JP@linewidth=#1\fi\JP@m@lody}
 \def\JP@melody{\JP@linewidth=\hsize\JP@m@lody}
-\def\JP@m@lody#1\\{\hbox to \JP@linewidth{#1}\endgroup}
-
-%\def\stk{}
-%\let\push=\JP@push
-%\let\pop=\JP@pop
-%\let\setstack=\JP@setstack
-%\setstack\stk{1234567890}
-%\stk\par
-%\push\stk3
-%\push\stk4
-%\stk
-%\par
-%\pop\stk\a
-%\a | \stk
-%\push\stk8
-%\push\stk9
-%\pop\stk\a
-%\a | \stk
-%\push\stk8
-%\par
-%\setstack\stk{1}
-%\pop\stk\a
-%\a | \stk
-%\pop\stk\a
-%\a | \stk
-%
-%\newdimen\tmpdim
-%\newcount\tmpcnt
-%\tmpdim=1234sp
-%%\printmode\printmode
-%\JP@sptocnt\tmpdim\tmpcnt
-%%\printmode
-%\the\tmpcnt\par
+\def\JP@m@lody#1\\{\hbox to \JP@linewidth{\JP@startxiaojie#1\JP@endxiaojie
+  \egroup\hfil}\endgroup}
 
 %
 \def\printmode{%
@@ -251,26 +312,19 @@
 %
 \font\sf=cmss10 at 20pt
 \sf
-\newbox\tmpbox
-\newbox\queue
-\JP@resetqueuebox\queue
-\setbox\tmpbox\hbox{Hello}
-\JP@pushqueuebox\queue\tmpbox
-\setbox\tmpbox\hbox{world}
-\JP@pushqueuebox\queue\tmpbox
-\copy\queue
-\JP@popqueuebox\queue\tmpbox
-\box\tmpbox
-%\copy\queue
-\JP@popqueuebox\queue\tmpbox
-\box\tmpbox
 
 %\tracingall
-\melody  \1\2\3^^^^\4\=\5^^\=\6____\7\\
+\setnotewidth{1.5ex}
+\melody \1\2\3^^^^|[2cm]\4\=\5^^\=\6____\uhspace{1cm}\7\-\3|[5cm]%
+\=\1\=\2\-\3^^^^\-\4|[3cm]\\
+\melody \1^\hfil b\=\=\getleader\hskip 1cm\\
 %\par aaaaa
 %\JP@under{\JP@under{\JP@under{\JP@under{\hbox{3}}{\hbox{.}}}{\hbox{.}}}{\hbox{.}}}{\hbox{.}}
 %\hbox{
 %\JP@above{\JP@above{\JP@above{\JP@above{\hbox{3}}{\hbox{.}}}{\hbox{.}}}{\hbox{.}}}{\hbox{.}}
 %}
 %\par
+\setdefaultpai{1}
+\melody \6_- \6_.\=\6_ | \2-- \3 | \3- \(\2\1\) | \-\6_- | \2.\=\2\- \1.\=\2\- | \3- \(\5\3\)| \(\-\6- | \-\6-\) |\\
+\melody \3-\(\1\2\)| \3-- \6 | \3- \(\2\1\)|\(\3_-- \5_\)| \6_- \(\5_.\=\6_\)| \2- \(\3\1\)|\\
 \bye
