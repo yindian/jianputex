@@ -1,0 +1,25 @@
+基本思路
+
+利用数学模式里的active mathchar，实现数字1-8后跟^或_表示上下加点的功能。
+因为是数学模式，所以所有空格忽略。由于采用active mathchar，因此\hskip 1em
+之类的仍然可以，1不会也变成active。
+
+利用\halign实现对齐。\melody等是把一些内容写到一个宏中，再用\halign排。
+
+面向打印效果，简化输入。
+
+接下来的问题就是究竟要不要iterate over了。我觉得还是采取iterate的方法好。
+这样实现起来应该比较方便。不过用起来的时候一般就要加{}。无所谓，不是很麻烦。
+
+不过既然用iterate，就用不着数学模式了。第一段话作废。那种方法可以在不需要
+对齐的\shortjianpu中使用。jpuline中还是使用iterate的方法。
+
+每个数字都放在宽1em的盒子中。需要注意下划线的延伸。
+
+
+基本格式：
+
+\begin{jpuline}
+\melody 1 2 3 4 | 5 6 7 1^ | (3^ - - . [5^]) | [[2^1^]5] 6- || \\
+\lyric A B C D | E F {G H} I | J # | K # # L \\
+\end{jpuline}
