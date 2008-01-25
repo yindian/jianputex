@@ -1,0 +1,91 @@
+%       jianpu.sty      coded by YIN Dian
+%       Typeset Chinese Numbered Musical Notation.
+%       Hist:   080124  Start coding.
+%               080125  Continue coding.
+\NeedsTeXFormat{LaTeX2e}[1996/12/01]
+\def\fileversion{0.1}
+\def\filedate{2008/01/24}
+\ProvidesPackage{jianpu}[\filedate\space\fileversion]
+
+\ifx\eTeXrevision\@undefined
+  \PackageError{jianpu}{eTeX required to use this package}{}
+\fi
+
+% allocation
+\newif\ifjpu@result
+\newbox\jpu@tmpbox
+\newcount\jpu@uline
+\newcount\jpu@lastuline
+
+% parameter setting
+\def\jpu@p@notelen{1em}
+\def\jpu@p@font{\sffamily}
+
+% \futurenonspacelet
+\def\@BTcs{}
+\let\nexttoken\relax
+\let\next\relax
+\def\futurenonspacelet#1{\def\@BTcs{#1}%
+   \afterassignment\@BTfnslone\let\nexttoken= }
+\def\@BTfnslone{\expandafter\futurelet\@BTcs\@BTfnsltwo}
+\def\@BTfnsltwo{\expandafter\ifx\@BTcs\@sptoken\let\next=\@BTfnslthree
+   \else\let\next=\nexttoken\fi \next}
+\def\@BTfnslthree{\afterassignment\@BTfnslone\let\next= }
+
+% some basic macros
+\def\jpu@firsttok#1#2\@nil{#1}
+\def\jpu@testifnum#1{%
+  \jpu@resultfalse
+  \def\jpu@tmpmacro{#1}%
+  \unless\ifx\jpu@tmpmacro\empty
+    \expandafter\def\expandafter\jpu@tmpmacr@\expandafter{\jpu@firsttok #1\@nil}%
+    \ifx\jpu@tmpmacro\jpu@tmpmacr@
+      \if\noexpand #11 \jpu@resulttrue\else
+      \if\noexpand #12 \jpu@resulttrue\else
+      \if\noexpand #13 \jpu@resulttrue\else
+      \if\noexpand #14 \jpu@resulttrue\else
+      \if\noexpand #15 \jpu@resulttrue\else
+      \if\noexpand #16 \jpu@resulttrue\else
+      \if\noexpand #17 \jpu@resulttrue\else
+      \if\noexpand #18 \jpu@resulttrue\else
+      \if\noexpand #19 \jpu@resulttrue\else
+      \if\noexpand #10 \jpu@resulttrue
+      \fi\fi\fi\fi\fi\fi\fi\fi\fi\fi
+    \fi
+  \fi
+}
+
+% jpuline part
+\def\jpu@state{0}
+\def\jpu@melody{%
+  \def\jpu@line{}%
+  \futurenonspacelet\jpu@nextchar\jpu@melody@iter
+}
+
+\def\jpu@melody@iter{%
+  \ifx\jpu@nextchar\bgroup
+    \expandafter\jpu@melody@addnext
+  \else
+    \jpu@testifnum\jpu@nextchar
+    \ifjpu@result       % next char is a number
+      \expandafter\expandafter\expandafter\jpu@melody@numbernext
+      \expandafter
+    \else
+      
+    \fi
+  \fi
+}
+
+\def\jpu@melody@addnext#1{%
+  \expandafter\def\expandafter\jpu@line\expandafter{\jpu@line {#1}}%
+  \futurenonspacelet\jpu@nextchar\jpu@melody@iter
+}
+
+\def\jpu@melody@numbernext#1{% #1: number, i.e. the musical note
+  \ifnum\jpu@uline=0
+    \setbox\jpu@tmpbox=\hbox to \jpu@p@notelen{\hss\jpu@p@font #1\hss}%
+  \else
+  \fi
+}
+
+\endinput
