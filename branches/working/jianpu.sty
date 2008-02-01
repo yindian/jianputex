@@ -2,9 +2,10 @@
 %       Typeset Chinese Numbered Musical Notation.
 %       Hist:   080124  Start coding.
 %               080125  Continue coding.
+%               080201  Continue coding.
 \NeedsTeXFormat{LaTeX2e}[1996/12/01]
 \def\fileversion{0.1}
-\def\filedate{2008/01/24}
+\def\filedate{2008/02/01}
 \ProvidesPackage{jianpu}[\filedate\space\fileversion]
 
 \ifx\eTeXrevision\@undefined
@@ -14,8 +15,8 @@
 % allocation
 \newif\ifjpu@result
 \newbox\jpu@tmpbox
-\newcount\jpu@uline
-\newcount\jpu@lastuline
+\newcount\jpu@notelen
+\newcount\jpu@lastnotelen
 
 % parameter setting
 \def\jpu@p@notelen{1em}
@@ -40,6 +41,7 @@
   \unless\ifx\jpu@tmpmacro\empty
     \expandafter\def\expandafter\jpu@tmpmacr@\expandafter{\jpu@firsttok #1\@nil}%
     \ifx\jpu@tmpmacro\jpu@tmpmacr@
+      \if\noexpand #10 \jpu@resulttrue\else
       \if\noexpand #11 \jpu@resulttrue\else
       \if\noexpand #12 \jpu@resulttrue\else
       \if\noexpand #13 \jpu@resulttrue\else
@@ -48,8 +50,7 @@
       \if\noexpand #16 \jpu@resulttrue\else
       \if\noexpand #17 \jpu@resulttrue\else
       \if\noexpand #18 \jpu@resulttrue\else
-      \if\noexpand #19 \jpu@resulttrue\else
-      \if\noexpand #10 \jpu@resulttrue
+      \if\noexpand #19 \jpu@resulttrue
       \fi\fi\fi\fi\fi\fi\fi\fi\fi\fi
     \fi
   \fi
@@ -59,26 +60,56 @@
 \def\jpu@state{0}
 \def\jpu@melody{%
   \def\jpu@line{}%
+  \jpu@lastnotelen=0
+  \jpu@notelen=0
+  \let\jpu@notename=0
+  \def\jpu@noteextr{}%
   \futurenonspacelet\jpu@nextchar\jpu@melody@iter
 }
 
 \def\jpu@melody@iter{%
-  \ifx\jpu@nextchar\bgroup
-    \expandafter\jpu@melody@addnext
+  \def\jpu@return{\futurenonspacelet\jpu@nextchar\jpu@melody@iter}%
+  \let\jpu@iternext\jpu@return
+  \ifx\jpu@nextchar\bgroup % next char is {
+    \expandafter\def\expandafter\jpu@line\expandafter{\jpu@line {#1}}%
   \else
     \jpu@testifnum\jpu@nextchar
     \ifjpu@result       % next char is a number
-      \expandafter\expandafter\expandafter\jpu@melody@numbernext
-      \expandafter
+      \let\jpu@iternext\jpu@melody@numbernext
     \else
-      
+      \ifx\jpu@nextchar|% bar line
+        \let\jpu@iternext\jpu@melody@bar
+      \else
+        \ifx\jpu@nextchar[% halve note length
+          \jpu@lastnotelen=\jpu@notelen
+          \advance\jpu@notelen1
+        \else
+          \ifx\jpu@nextchar]% double note length
+            \jpu@lastnotelen=\jpu@notelen
+            \advance\jpu@notelen-1
+            \ifnum\jpu@notelen<0
+              \PackageError{jianpu}{Note length cannot double now.}{}
+            \fi
+          \else
+            \ifx\jpu@nextchar(% begin tie
+              \let\jpu@iternext\jpu@melody@begintie
+            \else
+              \ifx\jpu@nextchar)% end tie
+                \let\jpu@iternext\jpu@melody@endtie
+              \else
+                \ifx\jpu@nextchar\\% end of \melody line
+                  \let\jpu@iternext\jpu@endmelody
+                \else
+                  \expandafter\def\expandafter\jpu@line\expandafter{\jpu@line\jpu@nextchar}%
+                \fi
+              \fi
+            \fi
+          \fi
+        \fi
+      \fi
     \fi
   \fi
-}
-
-\def\jpu@melody@addnext#1{%
-  \expandafter\def\expandafter\jpu@line\expandafter{\jpu@line {#1}}%
-  \futurenonspacelet\jpu@nextchar\jpu@melody@iter
+  \jpu@iternext
 }
 
 \def\jpu@melody@numbernext#1{% #1: number, i.e. the musical note
@@ -87,5 +118,18 @@
   \else
   \fi
 }
+
+\def\jpu@melody@begintie({%
+}
+
+\def\jpu@melody@endtie){%
+}
+
+\def\jpu@melody@bar|{%
+}
+
+\def\jpu@endmelody{%
+}
+
 
 \endinput
