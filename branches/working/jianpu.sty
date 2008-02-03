@@ -3,6 +3,7 @@
 %       Hist:   080124  Start coding.
 %               080125  Continue coding.
 %               080201  Continue coding.
+%               080203  Continue coding.
 \NeedsTeXFormat{LaTeX2e}[1996/12/01]
 \def\fileversion{0.1}
 \def\filedate{2008/02/01}
@@ -17,9 +18,10 @@
 \newbox\jpu@tmpbox
 \newcount\jpu@notelen
 \newcount\jpu@lastnotelen
+\newcount\jpu@tabindex
 
 % parameter setting
-\def\jpu@p@notelen{1em}
+\def\jpu@p@notewidth{1em}
 \def\jpu@p@font{\sffamily}
 
 % \futurenonspacelet
@@ -58,20 +60,22 @@
 
 % jpuline part
 \def\jpu@state{0}
+\def\melody{\jpu@melody}
 \def\jpu@melody{%
   \def\jpu@line{}%
   \jpu@lastnotelen=0
   \jpu@notelen=0
-  \let\jpu@notename=0
+  \jpu@tabindex=0
+  \let\jpu@notename\empty
   \def\jpu@noteextr{}%
   \futurenonspacelet\jpu@nextchar\jpu@melody@iter
 }
 
 \def\jpu@melody@iter{%
   \def\jpu@return{\futurenonspacelet\jpu@nextchar\jpu@melody@iter}%
-  \let\jpu@iternext\jpu@return
+  \def\jpu@iternext{\afterassignment\jpu@return\let\jpu@nextchar}%
   \ifx\jpu@nextchar\bgroup % next char is {
-    \expandafter\def\expandafter\jpu@line\expandafter{\jpu@line {#1}}%
+    \let\jpu@iternext\jpu@melody@addnextgroup
   \else
     \jpu@testifnum\jpu@nextchar
     \ifjpu@result       % next char is a number
@@ -82,7 +86,7 @@
       \else
         \ifx\jpu@nextchar[% halve note length
           \jpu@lastnotelen=\jpu@notelen
-          \advance\jpu@notelen1
+          \advance\jpu@notelen 1
         \else
           \ifx\jpu@nextchar]% double note length
             \jpu@lastnotelen=\jpu@notelen
@@ -100,7 +104,7 @@
                 \ifx\jpu@nextchar\\% end of \melody line
                   \let\jpu@iternext\jpu@endmelody
                 \else
-                  \expandafter\def\expandafter\jpu@line\expandafter{\jpu@line\jpu@nextchar}%
+                  \let\jpu@iternext\jpu@melody@addnextchar
                 \fi
               \fi
             \fi
@@ -112,23 +116,67 @@
   \jpu@iternext
 }
 
+\def\jpu@melody@addnextgroup#1{%
+  \expandafter\def\expandafter\jpu@line\expandafter{\jpu@line {#1}}%
+  \jpu@return
+}
+
+\def\jpu@melody@addnextchar#1{%
+  \expandafter\def\expandafter\jpu@line\expandafter{\jpu@line #1}%
+  \jpu@return
+}
+
 \def\jpu@melody@numbernext#1{% #1: number, i.e. the musical note
-  \ifnum\jpu@uline=0
-    \setbox\jpu@tmpbox=\hbox to \jpu@p@notelen{\hss\jpu@p@font #1\hss}%
-  \else
+  \expandafter\def\expandafter\jpu@line\expandafter{\jpu@line &}%
+  \unless\ifx\jpu@notename\empty
+    \jpu@melody@flushnote
   \fi
+  \let\jpu@notename=#1%
+  \def\jpu@noteextr{}%
+  \futurenonspacelet\jpu@nextchar\jpu@melody@numberextra
+}
+
+\def\jpu@melody@numberextra{% ^ _ - . etc
+  \let\jpu@melody@numberextranext\jpu@return
+  \ifx\jpu@nextchar^%
+    \let\jpu@melody@numberextranext\jpu@melody@numberextreat
+  \else
+    \ifx\jpu@nextchar_%
+      \let\jpu@melody@numberextranext\jpu@melody@numberextreat
+    \else
+      \ifx\jpu@nextchar-%
+        \let\jpu@melody@numberextranext\jpu@melody@numberextreat
+      \else
+        \ifx\jpu@nextchar.%
+          \let\jpu@melody@numberextranext\jpu@melody@numberextreat
+        \fi
+      \fi
+    \fi
+  \fi
+  \jpu@melody@numberextranext
+}
+
+\def\jpu@melody@numberextreat{%
+  \afterassignment\jpu@melody@numberextra\let\jpu@nextchar
+}
+
+\def\jpu@melody@flushnote{%
 }
 
 \def\jpu@melody@begintie({%
+  \jpu@return
 }
 
 \def\jpu@melody@endtie){%
+  \jpu@return
 }
 
 \def\jpu@melody@bar|{%
+  \jpu@return
 }
 
-\def\jpu@endmelody{%
+\def\jpu@endmelody\\{%
+  \message{\meaning\jpu@line}%
 }
 
 
