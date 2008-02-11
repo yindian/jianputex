@@ -4,6 +4,7 @@
 %               080125  Continue coding.
 %               080201  Continue coding.
 %               080203  Continue coding.
+%               080211  Continue coding.
 \NeedsTeXFormat{LaTeX2e}[1996/12/01]
 \def\fileversion{0.1}
 \def\filedate{2008/02/01}
@@ -16,12 +17,18 @@
 % allocation
 \newif\ifjpu@result
 \newbox\jpu@tmpbox
+\newdimen\jpu@tmpdim
+\newcount\jpu@tmpcnt
 \newcount\jpu@notelen
 \newcount\jpu@lastnotelen
 \newcount\jpu@tabindex
+\newtoks\jpu@line
 
 % parameter setting
 \def\jpu@p@notewidth{1em}
+\def\jpu@p@rulesep{0.8pt}
+\def\jpu@p@ruleheight{0.4pt}
+\def\jpu@p@intermeasuresep{0.5em}
 \def\jpu@p@font{\sffamily}
 
 % \futurenonspacelet
@@ -60,9 +67,63 @@
 
 % jpuline part
 \def\jpu@state{0}
+
+\def\jpu@addtoline#1{%
+  \edef\abc{\the\jpu@line}%
+  \immediate\write16{\meaning\abc}%
+  \edef\do{\jpu@line={\the\jpu@line #1}}%
+  \do
+}
+% macros that are used in \jpu@addtoline should be defined with \protected
+
+\def\jpntld{\ifnum\jpu@notelen>0 \expandafter\jpu@ntld\fi}
+\def\jpu@ntld{\expandafter\jpu@noteleader\expandafter{\the\jpu@notelen}}
+\def\jpntld@{\ifnum\jpu@lastnotelen>0 \expandafter\jpu@ntld@\fi}
+\def\jpu@ntld@{\expandafter\jpu@noteleader\expandafter{\the\jpu@lastnotelen}}
+
+\protected\def\jpu@noteleader#1{% #1: number of underlines (i.e. note length)
+  \jpu@tmpcnt=#1%
+  \setbox0=\hb@xt@ 0.1pt{\vphantom{\jpu@p@font 0}\hss}%
+  \jpu@addboxul
+  \cleaders\box0
+}
+
+\def\jpu@addboxul{% \jpu@tmpcnt and \box0 should be pre-set
+  \loop
+  \ifnum\jpu@tmpcnt>0
+    %\setbox0=\hbox{$\m@th\@@underline{\box0}$}%
+    \setbox0=\hbox{\vtop{\box0\vskip\jpu@p@rulesep\hrule\@height\jpu@p@ruleheight}}%
+    \advance\jpu@tmpcnt-1
+  \repeat
+}
+
+\protected\def\jpu@shownote#1#2{% #1: note name, #2: note length
+  \jpu@tmpcnt=#2%
+  \setbox0=\hbox{\jpu@p@font #1}%
+  \jpu@addboxul
+  \box0
+}
+
+\def\jpuline{%
+  \begingroup
+  \def\jpu@lines{}%
+}
+\def\endjpuline{%
+  \ialign{&##\hfil\cr
+    \jpu@lines
+  }%
+  \begingroup
+  \par
+  \ttfamily
+  \meaning\jpu@lines
+  \par
+  \endgroup
+  \endgroup
+}
+
 \def\melody{\jpu@melody}
 \def\jpu@melody{%
-  \def\jpu@line{}%
+  \jpu@line={}%
   \jpu@lastnotelen=0
   \jpu@notelen=0
   \jpu@tabindex=0
@@ -85,10 +146,13 @@
         \let\jpu@iternext\jpu@melody@bar
       \else
         \ifx\jpu@nextchar[% halve note length
+          \jpu@melody@flushnote
+          \jpu@melody@flushnote
           \jpu@lastnotelen=\jpu@notelen
           \advance\jpu@notelen 1
         \else
           \ifx\jpu@nextchar]% double note length
+            \jpu@melody@flushnote
             \jpu@lastnotelen=\jpu@notelen
             \advance\jpu@notelen-1
             \ifnum\jpu@notelen<0
@@ -117,21 +181,21 @@
 }
 
 \def\jpu@melody@addnextgroup#1{%
-  \expandafter\def\expandafter\jpu@line\expandafter{\jpu@line {#1}}%
+  \jpu@line=\expandafter{\the\jpu@line {#1}}%
   \jpu@return
 }
 
 \def\jpu@melody@addnextchar#1{%
-  \expandafter\def\expandafter\jpu@line\expandafter{\jpu@line #1}%
+  \jpu@line=\expandafter{\the\jpu@line #1}%
   \jpu@return
 }
 
 \def\jpu@melody@numbernext#1{% #1: number, i.e. the musical note
-  \expandafter\def\expandafter\jpu@line\expandafter{\jpu@line &}%
-  \unless\ifx\jpu@notename\empty
-    \jpu@melody@flushnote
-  \fi
-  \let\jpu@notename=#1%
+  \immediate\write16{Next is number #1. \the\jpu@line}%
+  \jpu@melody@flushnote
+  \jpu@melody@flushnote
+  \jpu@line=\expandafter{\the\jpu@line &}%
+  \def\jpu@notename{#1}%
   \def\jpu@noteextr{}%
   \futurenonspacelet\jpu@nextchar\jpu@melody@numberextra
 }
@@ -156,11 +220,28 @@
   \jpu@melody@numberextranext
 }
 
-\def\jpu@melody@numberextreat{%
-  \afterassignment\jpu@melody@numberextra\let\jpu@nextchar
+\def\jpu@melody@numberextreat#1{%
+  \expandafter\def\expandafter\jpu@noteextr\expandafter{\jpu@noteextr #1}%
+  \futurenonspacelet\jpu@nextchar\jpu@melody@numberextra
 }
 
 \def\jpu@melody@flushnote{%
+  \unless\ifx\jpu@notename\empty
+    \ifx\jpu@notename\relax % note outputed, but right space not
+      \immediate\write16{right space output}%
+      \jpu@addtoline{\jpntld\hskip\the\jpu@tmpdim\relax}%
+      \let\jpu@notename\empty
+      \immediate\write16{right space output ended}%
+    \else % note not outputed
+      \immediate\write16{note output \jpu@notename}%
+      \setbox\jpu@tmpbox=\hbox{\jpu@p@font\jpu@notename}%
+      \jpu@tmpdim=\dimexpr(\jpu@p@notewidth-\wd\jpu@tmpbox)/2
+      \jpu@addtoline{\jpntld@\hskip\the\jpu@tmpdim\relax}%
+      \jpu@addtoline{\jpu@shownote{\jpu@notename}{\the\jpu@notelen}}%
+      \let\jpu@notename\relax
+      \immediate\write16{note output ended}%
+    \fi
+  \fi
 }
 
 \def\jpu@melody@begintie({%
@@ -172,11 +253,26 @@
 }
 
 \def\jpu@melody@bar|{%
+  \immediate\write16{Bar, end measure}%
+  \jpu@lastnotelen=\jpu@notelen
+  \jpu@melody@flushnote
+  \jpu@melody@flushnote
+  \jpu@line=\expandafter{\the\jpu@line&\hb@xt@\z@{\hss$\m@th\big|$\hss}}%
   \jpu@return
 }
 
+\def\jpu@stripamp&#1\@nil{#1}
+
 \def\jpu@endmelody\\{%
-  \message{\meaning\jpu@line}%
+  \jpu@melody@flushnote
+  \jpu@melody@flushnote
+  \edef\do{\expandafter\jpu@stripamp\the\jpu@line\@nil}%
+  \jpu@line=\expandafter{\do}%
+  \edef\abc{\the\jpu@line}%
+  \message{\meaning\abc}%
+  \toks0=\expandafter{\jpu@lines}%
+  \edef\do{\def\noexpand\jpu@lines{\the\toks0\the\jpu@line\tabskip=\z@\crcr}}%
+  \do
 }
 
 
