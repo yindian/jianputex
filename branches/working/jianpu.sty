@@ -31,6 +31,7 @@
 \def\jpu@p@ruleheight{0.4pt}
 \def\jpu@p@intermeasuresep{0.5em}
 \def\jpu@p@font{\sffamily}
+\def\jpu@p@vbarrule{\vrule\@height.7\baselineskip\@depth.3\baselineskip\@width.4pt}
 
 % \futurenonspacelet
 \def\@BTcs{}
@@ -66,12 +67,14 @@
   \fi
 }
 
+\def\jpu@print{\immediate\write16}
+
 % jpuline part
 \def\jpu@state{0}
 
 \def\jpu@addtoline#1{%
   \edef\abc{\the\jpu@line}%
-  \immediate\write16{\meaning\abc}%
+  \jpu@print{\meaning\abc}%
   \edef\do{\jpu@line={\the\jpu@line #1}}%
   \do
 }
@@ -170,6 +173,7 @@
               \jpu@melody@flushnote
             \fi
             \advance\jpu@notelen-1
+            \jpu@lastnotelen=\jpu@notelen
             \ifnum\jpu@notelen<0
               \PackageError{jianpu}{Note length cannot double now.}{}
             \fi
@@ -206,7 +210,7 @@
 }
 
 \def\jpu@melody@numbernext#1{% #1: number, i.e. the musical note
-  \immediate\write16{Next is number #1. \the\jpu@line}%
+  \jpu@print{Next is number #1. \the\jpu@line}%
   \jpu@melody@flushnote
   \jpu@melody@flushnote
   \jpu@line=\expandafter{\the\jpu@line &}%
@@ -243,19 +247,20 @@
 \def\jpu@melody@flushnote{%
   \unless\ifx\jpu@notename\empty
     \ifx\jpu@notename\relax % note outputed, but right space not
-      \immediate\write16{right space output}%
+      \jpu@print{right space output}%
       \jpu@addtoline{\jpntld\hskip\the\jpu@tmpdim\relax}%
       \let\jpu@notename\empty
-      \immediate\write16{right space output ended}%
+      \jpu@print{right space output ended}%
     \else % note not outputed
-      \immediate\write16{note output \jpu@notename}%
+      \jpu@print{note output \jpu@notename}%
       \setbox\jpu@tmpbox=\hbox{\jpu@p@font\jpu@notename}%
       \jpu@tmpdim=\dimexpr(\jpu@p@notewidth-\wd\jpu@tmpbox)/2
       \jpu@addtoline{\jpntld@\hskip\the\jpu@tmpdim\relax}%
+      %\jpu@addtoline{\llap{${}^{\the\jpu@notelen}_{\the\jpu@lastnotelen}$}}%
       \jpu@addtoline{\jpu@shownote{\jpu@notename}{\the\jpu@notelen}}%
       \let\jpu@notename\relax
       \jpu@lastnotelen=\jpu@notelen
-      \immediate\write16{note output ended}%
+      \jpu@print{note output ended}%
     \fi
   \fi
 }
@@ -269,11 +274,11 @@
 }
 
 \def\jpu@melody@bar|{%
-  \immediate\write16{Bar, end measure}%
+  \jpu@print{Bar, end measure}%
   \jpu@lastnotelen=\jpu@notelen
   \jpu@melody@flushnote
   \jpu@melody@flushnote
-  \jpu@line=\expandafter{\the\jpu@line&\hb@xt@\z@{\hss$\m@th\big|$\hss}}%
+  \jpu@line=\expandafter{\the\jpu@line&\hb@xt@\z@{\hss\jpu@p@vbarrule\hss}}%
   \jpu@return
 }
 
