@@ -5,6 +5,7 @@
 %               080201  Continue coding.
 %               080203  Continue coding.
 %               080211  Continue coding.
+%               080212  Continue coding.
 \NeedsTeXFormat{LaTeX2e}[1996/12/01]
 \def\fileversion{0.1}
 \def\filedate{2008/02/01}
@@ -77,9 +78,23 @@
 % macros that are used in \jpu@addtoline should be defined with \protected
 
 \def\jpntld{\ifnum\jpu@notelen>0 \expandafter\jpu@ntld\fi}
+\def\jpntld@{% use the smaller one as leader
+  \ifnum\jpu@lastnotelen>0 
+    \ifnum\jpu@lastnotelen<\jpu@notelen
+      \expandafter\expandafter\expandafter\jpu@ntld@
+      \expandafter
+    \else
+      \unless\ifnum\jpu@notelen>0 
+        \jpu@ntld@gobblefi
+      \fi
+      \expandafter\expandafter\expandafter\jpu@ntld
+      \expandafter
+    \fi
+  \fi
+}
 \def\jpu@ntld{\expandafter\jpu@noteleader\expandafter{\the\jpu@notelen}}
-\def\jpntld@{\ifnum\jpu@lastnotelen>0 \expandafter\jpu@ntld@\fi}
 \def\jpu@ntld@{\expandafter\jpu@noteleader\expandafter{\the\jpu@lastnotelen}}
+\def\jpu@ntld@gobblefi\fi#1\fi{\fi\fi}
 
 \protected\def\jpu@noteleader#1{% #1: number of underlines (i.e. note length)
   \jpu@tmpcnt=#1%
@@ -148,12 +163,12 @@
         \ifx\jpu@nextchar[% halve note length
           \jpu@melody@flushnote
           \jpu@melody@flushnote
-          \jpu@lastnotelen=\jpu@notelen
           \advance\jpu@notelen 1
         \else
           \ifx\jpu@nextchar]% double note length
-            \jpu@melody@flushnote
-            \jpu@lastnotelen=\jpu@notelen
+            \unless\ifx\jpu@notename\relax % note not outputed
+              \jpu@melody@flushnote
+            \fi
             \advance\jpu@notelen-1
             \ifnum\jpu@notelen<0
               \PackageError{jianpu}{Note length cannot double now.}{}
@@ -239,6 +254,7 @@
       \jpu@addtoline{\jpntld@\hskip\the\jpu@tmpdim\relax}%
       \jpu@addtoline{\jpu@shownote{\jpu@notename}{\the\jpu@notelen}}%
       \let\jpu@notename\relax
+      \jpu@lastnotelen=\jpu@notelen
       \immediate\write16{note output ended}%
     \fi
   \fi
