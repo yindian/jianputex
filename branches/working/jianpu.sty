@@ -52,16 +52,17 @@
   \unless\ifx\jpu@tmpmacro\empty
     \expandafter\def\expandafter\jpu@tmpmacr@\expandafter{\jpu@firsttok #1\@nil}%
     \ifx\jpu@tmpmacro\jpu@tmpmacr@
-      \if\noexpand #10 \jpu@resulttrue\else
-      \if\noexpand #11 \jpu@resulttrue\else
-      \if\noexpand #12 \jpu@resulttrue\else
-      \if\noexpand #13 \jpu@resulttrue\else
-      \if\noexpand #14 \jpu@resulttrue\else
-      \if\noexpand #15 \jpu@resulttrue\else
-      \if\noexpand #16 \jpu@resulttrue\else
-      \if\noexpand #17 \jpu@resulttrue\else
-      \if\noexpand #18 \jpu@resulttrue\else
-      \if\noexpand #19 \jpu@resulttrue
+      \if\noexpand #10\jpu@resulttrue\else
+      \if\noexpand #11\jpu@resulttrue\else
+      \if\noexpand #12\jpu@resulttrue\else
+      \if\noexpand #13\jpu@resulttrue\else
+      \if\noexpand #14\jpu@resulttrue\else
+      \if\noexpand #15\jpu@resulttrue\else
+      \if\noexpand #16\jpu@resulttrue\else
+      \if\noexpand #17\jpu@resulttrue\else
+      \if\noexpand #18\jpu@resulttrue\else
+      \if\noexpand #19\jpu@resulttrue\else
+      \if\noexpand #1&\jpu@resulttrue % place holder
       \fi\fi\fi\fi\fi\fi\fi\fi\fi\fi
     \fi
   \fi
@@ -253,11 +254,17 @@
       \jpu@print{right space output ended}%
     \else % note not outputed
       \jpu@print{note output \jpu@notename}%
-      \setbox\jpu@tmpbox=\hbox{\jpu@p@font\jpu@notename}%
+      \if &\jpu@notename % place holder
+        \setbox\jpu@tmpbox=\hbox{\vphantom{\jpu@p@font 0}}%
+      \else
+        \setbox\jpu@tmpbox=\hbox{\jpu@p@font\jpu@notename}%
+      \fi
       \jpu@tmpdim=\dimexpr(\jpu@p@notewidth-\wd\jpu@tmpbox)/2
       \jpu@addtoline{\jpntld@\hskip\the\jpu@tmpdim\relax}%
       %\jpu@addtoline{\llap{${}^{\the\jpu@notelen}_{\the\jpu@lastnotelen}$}}%
-      \jpu@addtoline{\jpu@shownote{\jpu@notename}{\the\jpu@notelen}}%
+      \unless\if &\jpu@notename % place holder
+        \jpu@addtoline{\jpu@shownote{\jpu@notename}{\the\jpu@notelen}}%
+      \fi
       \let\jpu@notename\relax
       \jpu@lastnotelen=\jpu@notelen
       \jpu@print{note output ended}%
@@ -287,8 +294,12 @@
 \def\jpu@endmelody\\{%
   \jpu@melody@flushnote
   \jpu@melody@flushnote
-  \edef\do{\expandafter\jpu@stripamp\the\jpu@line\@nil}%
-  \jpu@line=\expandafter{\do}%
+  \def\jpu@tmpmacro{&}%
+  \edef\jpu@tmpmacr@{\expandafter\jpu@firsttok\the\jpu@line\@nil}%
+  \ifx\jpu@tmpmacro\jpu@tmpmacr@
+    \edef\do{\expandafter\jpu@stripamp\the\jpu@line\@nil}%
+    \jpu@line=\expandafter{\do}%
+  \fi
   \edef\abc{\the\jpu@line}%
   \message{\meaning\abc}%
   \toks0=\expandafter{\jpu@lines}%
