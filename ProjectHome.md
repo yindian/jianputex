@@ -1,0 +1,1 @@
+This project hosts jianputex, a LaTeX macro package for typesetting Jianpu (Jiǎnpǔ, Chinese Numbered Musical Notation). Still under development.
